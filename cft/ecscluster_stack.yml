@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: 2010-09-09
+Metadata:
+  'AWS::CloudFormation::Designer':
+    cd1c536a-051e-44a9-9ee3-de210c14e0e5:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 240
+        'y': 210
+      z: 1
+      embeds: []
+    77358714-23da-464c-a29e-12223bf4d0ff:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 390
+        'y': 240
+      z: 1
+      embeds: []
+    b43671e6-2e27-4d27-873c-e212fcc112c1:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 510
+        'y': 270
+      z: 1
+      embeds: []
+    6923c656-0fd1-4fb8-99a2-aa9bab5440e4:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 720
+        'y': 170
+      z: 1
+      embeds: []
+Parameters:
+  DefaultVpcId:
+    Type: String
+    Description: Default VPC ID
+  DefaultSecurityGroupId:
+    Type: String
+    Description: Default Security Group ID
+  TaskDefinitionImageAMI:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+    Description: AMI of the Image you want to use with ECS
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/ecs/cluster
+  AvidEcsCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: avid-ecs-cluster
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: cd1c536a-051e-44a9-9ee3-de210c14e0e5
+  AvidEcsClusterSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allows ECS task execution access to containers from ECR
+      GroupName: ecs-task-sg
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allows ECS task execution access to containers from ECR
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+      Tags:
+        - Key: Name
+          Value: ecs-task-sg
+      VpcId: !Ref DefaultVpcId
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b43671e6-2e27-4d27-873c-e212fcc112c1
+  AvidEcsTaskExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: avid-ecs-task-execution-role
+      Description: Allows ECS tasks to call AWS services on your behalf.
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 77358714-23da-464c-a29e-12223bf4d0ff
+  AvidEcsTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: avid-ecs-task-definition
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref AvidEcsTaskExecutionRole
+      ContainerDefinitions:
+        - Name: avid-ingest-ecs-task-container
+          Image: !Ref TaskDefinitionImageAMI
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: avid-ingest-task
+      RequiresCompatibilities:
+        - EC2
+        - FARGATE
+      TaskRoleArn: !GetAtt 
+        - AvidEcsTaskExecutionRole
+        - Arn
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 6923c656-0fd1-4fb8-99a2-aa9bab5440e4

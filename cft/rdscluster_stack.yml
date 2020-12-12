@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: 2010-09-09
+Metadata:
+  'AWS::CloudFormation::Designer':
+    5f678b3c-be91-4114-8302-c89c05ed1763:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 260
+        'y': 185
+      z: 0
+Parameters:
+  DefaultVpcId:
+    Type: String
+    Description: Default VPC ID
+  DefaultSecurityGroupId:
+    Type: String
+    Description: Default Security Group ID
+Resources:
+  AvidPostgresCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      Engine: aurora-postgresql
+      DatabaseName: avid
+      DBClusterIdentifier: avid-postgres-cluster
+      DeletionProtection: false
+      EnableHttpEndpoint: true
+      EnableIAMDatabaseAuthentication: false
+      EngineMode: serverless
+      EngineVersion: "10.12"
+      MasterUsername: postgres
+      MasterUserPassword: hist0grm
+      Port: 5432
+      ScalingConfiguration:
+        AutoPause: false
+        MaxCapacity: 2
+        MinCapacity: 2
+        SecondsUntilAutoPause: 300
+      StorageEncrypted: true
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5f678b3c-be91-4114-8302-c89c05ed1763

@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: 2010-09-09
+Metadata:
+  'AWS::CloudFormation::Designer':
+    5d46d1de-51fd-44dd-bf5e-08f96c119c99:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 170
+        'y': 230
+      z: 0
+      embeds: []
+    cfe9af55-0d37-4e21-a28a-f83abdca9cac:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 170
+        'y': 310
+      z: 0
+      embeds: []
+    dd26d593-b829-4b14-a7cd-403f3193761b:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 280
+        'y': 310
+      z: 0
+      embeds: []
+      isassociatedwith:
+        - cfe9af55-0d37-4e21-a28a-f83abdca9cac
+    9a7da4d4-a455-4169-b1b9-64b884c0a8fd:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 440
+        'y': 270
+      z: 0
+      embeds: []
+      isassociatedwith:
+        - 5d46d1de-51fd-44dd-bf5e-08f96c119c99
+    a90b8e28-6f94-4688-b4c3-1dc01b14b41a:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 587.3421932569624
+        'y': 283.7906509879713
+      z: 0
+Parameters:
+  DefaultVpcId:
+    Type: String
+    Description: Default VPC ID
+  DefaultSecurityGroupId:
+    Type: String
+    Description: Default Security Group ID
+  JumpboxImageAMI:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+    Description: AMI of the Jumpbox Image you want to create
+Resources:
+  JumpboxInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: 2012-10-17
+      Tags:
+        - Key: Name
+          Value: jumpbox
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: cfe9af55-0d37-4e21-a28a-f83abdca9cac
+  JumpboxSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allows SSH access to ec2 jumpbox instance
+      GroupName: jumpbox-sg
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allows SSH access to ec2 jumpbox instance
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+      Tags:
+        - Key: Name
+          Value: jumpbox-sg
+      VpcId: !Ref DefaultVpcId
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5d46d1de-51fd-44dd-bf5e-08f96c119c99
+  JumpboxInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref JumpboxInstanceRole
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: dd26d593-b829-4b14-a7cd-403f3193761b
+  JumpboxInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      IamInstanceProfile: !Ref JumpboxInstanceProfile
+      ImageId: !Ref JumpboxImageAMI
+      InstanceType: t2.micro
+      KeyName: 'default-keypair'
+      SecurityGroupIds:
+        - !GetAtt
+          - JumpboxSecurityGroup
+          - GroupId
+      Tags:
+        - Key: Name
+          Value: jumpbox
+      UserData: !Base64 '#!/bin/bash'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 9a7da4d4-a455-4169-b1b9-64b884c0a8fd
+  JumpboxDefaultSecurityGroupIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: '5432'
+      ToPort: '5432'
+      SourceSecurityGroupId: !GetAtt
+        - JumpboxSecurityGroup
+        - GroupId
+      GroupId: !Ref DefaultSecurityGroupId
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: a90b8e28-6f94-4688-b4c3-1dc01b14b41a
